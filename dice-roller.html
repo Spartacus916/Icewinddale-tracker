@@ -1,1 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>d20 Roller</title>
+<style>
+  :root {
+    --ice-blue: #a8d8ea;
+    --deep-blue: #1b2a4a;
+    --frost: #e8f4f8;
+    --snow: #ffffff;
+    --accent: #5fb4d9;
+    --crit-gold: #ffd166;
+    --crit-fail: #e76f51;
+    --shadow: rgba(0, 20, 40, 0.4);
+  }
 
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: linear-gradient(160deg, #0d1b2f 0%, #1b2a4a 60%, #24395c 100%);
+    font-family: 'Georgia', 'Times New Roman', serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .container {
+    text-align: center;
+    padding: 24px 20px;
+    width: 100%;
+    max-width: 360px;
+  }
+
+  h1 {
+    color: var(--frost);
+    font-size: 1.1rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin: 0 0 20px 0;
+    opacity: 0.85;
+  }
+
+  .die-wrap {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    margin: 0 auto 24px auto;
+  }
+
+  svg#die {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 8px 16px var(--shadow));
+    transition: transform 0.15s ease-out;
+  }
+
+  svg#die.rolling {
+    animation: tumble 0.6s linear infinite;
+  }
+
+  @keyframes tumble {
+    0%   { transform: rotate(0deg) scale(1); }
+    25%  { transform: rotate(90deg) scale(0.95); }
+    50%  { transform: rotate(180deg) scale(1.05); }
+    75%  { transform: rotate(270deg) scale(0.95); }
+    100% { transform: rotate(360deg) scale(1); }
+  }
+
+  .die-face {
+    fill: url(#iceGradient);
+    stroke: var(--accent);
+    stroke-width: 2;
+  }
+
+  .die-number {
+    fill: var(--deep-blue);
+    font-size: 52px;
+    font-weight: bold;
+    font-family: 'Georgia', serif;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+
+  .die-number.crit {
+    fill: var(--crit-gold);
+  }
+
+  .die-number.fail {
+    fill: var(--crit-fail);
+  }
+
+  button#rollBtn {
+    background: linear-gradient(180deg, var(--accent), #3d8bb0);
+    color: var(--snow);
+    border: none;
+    border-radius: 10px;
+    padding: 14px 36px;
+    font-size: 1rem;
+    font-family: 'Georgia', serif;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 4px 10px var(--shadow);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+  }
+
+  button#rollBtn:hover {
+    box-shadow: 0 6px 14px var(--shadow);
+    transform: translateY(-1px);
+  }
+
+  button#rollBtn:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 6px var(--shadow);
+  }
+
+  button#rollBtn:disabled {
+    opacity: 0.6;
+    cursor: default;
+    transform: none;
+  }
+
+  .result-label {
+    margin-top: 14px;
+    min-height: 20px;
+    color: var(--ice-blue);
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    opacity: 0.9;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>d20</h1>
+
+  <div class="die-wrap">
+    <svg id="die" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="iceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#e8f4f8"/>
+          <stop offset="100%" stop-color="#a8d8ea"/>
+        </linearGradient>
+      </defs>
+      <!-- d20 rendered as a rounded icosahedron-ish silhouette (decorative polygon) -->
+      <polygon class="die-face" points="100,8 186,55 186,145 100,192 14,145 14,55" />
+      <polygon points="100,8 186,55 100,100" fill="#ffffff" opacity="0.15"/>
+      <polygon points="14,55 100,8 100,100" fill="#000000" opacity="0.06"/>
+      <polygon points="14,145 14,55 100,100" fill="#ffffff" opacity="0.10"/>
+      <polygon points="186,145 186,55 100,100" fill="#000000" opacity="0.10"/>
+      <polygon points="100,192 14,145 100,100" fill="#000000" opacity="0.06"/>
+      <polygon points="100,192 186,145 100,100" fill="#ffffff" opacity="0.12"/>
+      <text id="dieNumber" class="die-number" x="100" y="104">20</text>
+    </svg>
+  </div>
+
+  <button id="rollBtn">Roll</button>
+  <div class="result-label" id="resultLabel">&nbsp;</div>
+</div>
+
+<script>
+  const die = document.getElementById('die');
+  const dieNumber = document.getElementById('dieNumber');
+  const rollBtn = document.getElementById('rollBtn');
+  const resultLabel = document.getElementById('resultLabel');
+
+  let rolling = false;
+
+  rollBtn.addEventListener('click', () => {
+    if (rolling) return;
+    rolling = true;
+    rollBtn.disabled = true;
+    resultLabel.textContent = 'Rolling…';
+    dieNumber.classList.remove('crit', 'fail');
+    die.classList.add('rolling');
+
+    const spinDuration = 700; // ms
+    const spinInterval = setInterval(() => {
+      dieNumber.textContent = (Math.floor(Math.random() * 20) + 1);
+    }, 60);
+
+    setTimeout(() => {
+      clearInterval(spinInterval);
+      die.classList.remove('rolling');
+
+      const finalRoll = Math.floor(Math.random() * 20) + 1;
+      dieNumber.textContent = finalRoll;
+
+      if (finalRoll === 20) {
+        dieNumber.classList.add('crit');
+        resultLabel.textContent = 'Critical hit!';
+      } else if (finalRoll === 1) {
+        dieNumber.classList.add('fail');
+        resultLabel.textContent = 'Critical fail!';
+      } else {
+        resultLabel.textContent = 'You rolled a ' + finalRoll;
+      }
+
+      rolling = false;
+      rollBtn.disabled = false;
+    }, spinDuration);
+  });
+</script>
+
+</body>
+</html>
