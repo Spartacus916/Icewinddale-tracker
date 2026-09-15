@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Moonwatcher's Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #11132a;
+    --panel: #1a1e40;
+    --panel-2: #20254c;
+    --rule: #333b66;
+    --ink: #eae5d3;
+    --ink-muted: #8d94ba;
+    --gold: #d8bc63;
+    --gold-dim: #7a6d40;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, sans-serif;
+  }
+  body {
+    display: flex;
+    justify-content: center;
+    padding: 28px 14px 60px;
+    background-image:
+      radial-gradient(1px 1px at 20% 15%, rgba(234,229,211,0.35), transparent),
+      radial-gradient(1px 1px at 70% 8%, rgba(234,229,211,0.25), transparent),
+      radial-gradient(1.5px 1.5px at 85% 30%, rgba(234,229,211,0.3), transparent),
+      radial-gradient(1px 1px at 40% 60%, rgba(234,229,211,0.2), transparent),
+      radial-gradient(1px 1px at 10% 80%, rgba(234,229,211,0.25), transparent),
+      radial-gradient(1.5px 1.5px at 92% 75%, rgba(234,229,211,0.3), transparent);
+  }
+  .ledger {
+    width: 100%;
+    max-width: 440px;
+  }
+  .ledger-head {
+    text-align: left;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 14px;
+  }
+  h1 {
+    font-family: 'Spectral', serif;
+    font-weight: 600;
+    font-size: 26px;
+    margin: 0 0 4px;
+    letter-spacing: 0.2px;
+  }
+  .sub {
+    color: var(--ink-muted);
+    font-size: 13px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+  }
+  .card h2 {
+    font-family: 'Spectral', serif;
+    font-weight: 500;
+    font-size: 15px;
+    margin: 0 0 12px;
+    color: var(--ink-muted);
+    text-transform: none;
+  }
+  .today-line {
+    font-family: 'Spectral', serif;
+    font-size: 19px;
+    line-height: 1.45;
+    margin-bottom: 4px;
+  }
+  .today-sub {
+    color: var(--ink-muted);
+    font-size: 13px;
+    margin-bottom: 14px;
+  }
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  button {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    background: var(--panel-2);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--gold-dim); }
+  button.primary {
+    border-color: var(--gold-dim);
+    color: var(--gold);
+  }
+  button.small {
+    font-size: 12px;
+    padding: 6px 10px;
+    color: var(--ink-muted);
+  }
+  .moon-block {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .moon-disc {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 1px solid var(--rule);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    flex-shrink: 0;
+    background: radial-gradient(circle at 35% 30%, #2a2f5a, #171a38);
+  }
+  .moon-disc.full { border-color: var(--gold); box-shadow: 0 0 14px rgba(216,188,99,0.35); }
+  .moon-info { flex: 1; }
+  .moon-name {
+    font-family: 'Spectral', serif;
+    font-size: 17px;
+    font-weight: 600;
+  }
+  .moon-phase {
+    font-size: 13px;
+    color: var(--gold);
+    margin: 2px 0;
+  }
+  .moon-count {
+    font-size: 12px;
+    color: var(--ink-muted);
+  }
+  .moon-remove {
+    background: none;
+    border: none;
+    color: var(--ink-muted);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 2px 6px;
+  }
+  ul.upcoming {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 13.5px;
+  }
+  ul.upcoming li {
+    display: flex;
+    justify-content: space-between;
+    padding: 7px 0;
+    border-bottom: 1px dashed var(--rule);
+  }
+  ul.upcoming li:last-child { border-bottom: none; }
+  ul.upcoming .tag {
+    color: var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  details.settings summary {
+    cursor: pointer;
+    font-family: 'Spectral', serif;
+    font-size: 15px;
+    color: var(--ink-muted);
+    padding: 2px 0;
+  }
+  .field-row {
+    display: flex;
+    gap: 8px;
+    margin: 8px 0;
+    flex-wrap: wrap;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 90px;
+  }
+  .field label {
+    font-size: 11px;
+    color: var(--ink-muted);
+  }
+  .field input, .field select {
+    background: var(--bg);
+    border: 1px solid var(--rule);
+    color: var(--ink);
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 13px;
+    width: 100%;
+  }
+  .moon-config {
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 10px 12px;
+    margin: 10px 0;
+    position: relative;
+  }
+  .moon-config .field-row:last-child { margin-bottom: 0; }
+  .note {
+    font-size: 11.5px;
+    color: var(--ink-muted);
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+  .footer-note {
+    text-align: center;
+    color: var(--ink-muted);
+    font-size: 11.5px;
+    margin-top: 18px;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+<div class="ledger">
+  <div class="ledger-head">
+    <h1>The Moonwatcher's Ledger</h1>
+    <div class="sub">Tracked in tendays, for worlds where the moon keeps its own count.</div>
+  </div>
+
+  <div class="card">
+    <h2>Today</h2>
+    <div class="today-line" id="todayLine">—</div>
+    <div class="today-sub" id="todaySub">—</div>
+    <div class="btn-row">
+      <button onclick="advance(1)">+1 day</button>
+      <button onclick="advance(10)">+1 tenday</button>
+      <button onclick="advance(30)">+1 month</button>
+      <button class="small" onclick="advance(-1)">−1 day</button>
+    </div>
+  </div>
+
+  <div id="moonCards"></div>
+
+  <div class="card">
+    <h2>Weather over the Vale</h2>
+    <div class="moon-block" id="weatherDisplay"></div>
+    <div class="btn-row">
+      <button class="primary" onclick="rerollWeather()">Reroll weather</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <button class="small" onclick="addMoon()">+ add another moon</button>
+  </div>
+
+  <div class="card">
+    <details class="settings" id="settingsPanel">
+      <summary>Settings</summary>
+      <div class="field-row">
+        <div class="field">
+          <label>Year</label>
+          <input type="number" id="cfgYear" value="1492">
+        </div>
+        <div class="field">
+          <label>Month</label>
+          <select id="cfgMonth"></select>
+        </div>
+        <div class="field">
+          <label>Day of month (1–30)</label>
+          <input type="number" id="cfgDay" min="1" max="30" value="4">
+        </div>
+      </div>
+      <div class="note">Each month is assumed to hold 3 tendays of 10 days (30 days/month), the standard tenday reckoning. Rename months below if your world uses different ones.</div>
+      <div class="field-row">
+        <div class="field">
+          <label>Month names (comma-separated, 12)</label>
+          <input type="text" id="cfgMonthNames" value="Hammer, Alturiak, Ches, Tarsakh, Mirtul, Kythorn, Flamerule, Eleasis, Eleint, Marpenoth, Uktar, Nightal">
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="primary" onclick="applySettings()">Apply</button>
+      </div>
+      <div id="moonSettingsWrap"></div>
+    </details>
+  </div>
+
+  <div class="footer-note">Full moon math assumes clean 30‑day months (no intercalary days). Adjust a moon's cycle length or reference date any time in Settings.</div>
+</div>
+
+<script>
+// ---------- calendar helpers (30-day months, 3 tendays each) ----------
+function dayCount(y, m, d) {
+  return (y - 1) * 360 + (m - 1) * 30 + d;
+}
+function dateFromCount(count) {
+  let y = Math.floor((count - 1) / 360) + 1;
+  let rem = count - (y - 1) * 360;
+  let m = Math.floor((rem - 1) / 30) + 1;
+  let d = rem - (m - 1) * 30;
+  return { y, m, d };
+}
+function tendayOf(d) {
+  const tenday = Math.ceil(d / 10);
+  const dayInTenday = ((d - 1) % 10) + 1;
+  return { tenday, dayInTenday };
+}
+
+const PHASES = [
+  { name: "New Moon", icon: "🌑" },
+  { name: "Waxing Crescent", icon: "🌒" },
+  { name: "First Quarter", icon: "🌓" },
+  { name: "Waxing Gibbous", icon: "🌔" },
+  { name: "Full Moon", icon: "🌕" },
+  { name: "Waning Gibbous", icon: "🌖" },
+  { name: "Last Quarter", icon: "🌗" },
+  { name: "Waning Crescent", icon: "🌘" },
+];
+
+function phaseFor(ageIntoCycle, cycleLength) {
+  // age = days since the moon was FULL (0 = full moon)
+  const frac = ((ageIntoCycle % cycleLength) + cycleLength) % cycleLength / cycleLength;
+  const idx = Math.round(frac * 8) % 8;
+  return PHASES[idx];
+}
+
+// ---------- weather (Icewind Dale) ----------
+const TEN_TOWNS = ["Bryn Shander", "Termalaine", "Easthaven", "Caer-Dineval", "Caer-Konig", "Dougan's Hole", "Good Mead", "Lonelywood", "Targos", "Bremen"];
+
+const WEATHER_TABLE = [
+  { name: "Clear and Bitter", icon: "❄️", weight: 15, temp: [-20, -5], wind: "Calm", flavor: "A hard, cloudless sky. Sound carries strangely far across the ice." },
+  { name: "Fair, Cold", icon: "🌤️", weight: 18, temp: [-10, 10], wind: "Light breeze", flavor: "Pale sun, still air — about as pleasant as the Vale gets." },
+  { name: "Overcast", icon: "☁️", weight: 15, temp: [-15, 5], wind: "Moderate", flavor: "A flat grey sky presses low over the tundra." },
+  { name: "Light Snow", icon: "🌨️", weight: 15, temp: [-15, 0], wind: "Light", flavor: "Fine snow sifts down, dusting rooftops and beards alike." },
+  { name: "Heavy Snowfall", icon: "🌨️", weight: 12, temp: [-25, -5], wind: "Strong", flavor: "Snow falls thick and fast, cutting visibility to a few dozen feet." },
+  { name: "Freezing Fog", icon: "🌫️", weight: 8, temp: [-20, -5], wind: "Calm", flavor: "Ice crystals hang in still air; rime coats every exposed surface." },
+  { name: "Ground Blizzard", icon: "🌬️", weight: 8, temp: [-30, -10], wind: "Howling", flavor: "Wind scours loose snow into a stinging, waist-high haze." },
+  { name: "Full Blizzard", icon: "🥶", weight: 6, temp: [-40, -15], wind: "Violent", flavor: "Whiteout conditions — travel outside is a death sentence without shelter and a rope line." },
+  { name: "Aurora Night", icon: "🌌", weight: 3, temp: [-25, -10], wind: "Calm", flavor: "Rare and eerie: the northern lights ripple green and violet overhead." }
+];
+
+function weightedPick(table) {
+  const total = table.reduce((sum, w) => sum + w.weight, 0);
+  let r = Math.random() * total;
+  for (const entry of table) {
+    if (r < entry.weight) return entry;
+    r -= entry.weight;
+  }
+  return table[table.length - 1];
+}
+
+function rerollWeather() {
+  const w = weightedPick(WEATHER_TABLE);
+  const town = TEN_TOWNS[Math.floor(Math.random() * TEN_TOWNS.length)];
+  const temp = Math.floor(Math.random() * (w.temp[1] - w.temp[0] + 1)) + w.temp[0];
+  const isBlizzard = w.name.includes("Blizzard");
+
+  const disc = document.querySelector('#weatherDisplay').parentElement ? null : null;
+  document.getElementById('weatherDisplay').innerHTML = `
+    <div class="moon-disc ${isBlizzard ? 'full' : ''}">${w.icon}</div>
+    <div class="moon-info">
+      <div class="moon-name">${w.name}</div>
+      <div class="moon-phase">${temp}°F &middot; ${w.wind} wind</div>
+      <div class="moon-count">${w.flavor}</div>
+      <div class="moon-count" style="margin-top:4px;">Reported near ${town}</div>
+    </div>
+  `;
+}
+
+// ---------- state ----------
+let state = {
+  year: 1492,
+  month: 8,
+  day: 4,
+  monthNames: "Hammer, Alturiak, Ches, Tarsakh, Mirtul, Kythorn, Flamerule, Eleasis, Eleint, Marpenoth, Uktar, Nightal".split(",").map(s => s.trim()),
+  moons: [
+    { name: "Selûne", cycleLength: 30, refYear: 1492, refMonth: 8, refDay: 1 } // refDate = a date the moon was FULL
+  ]
+};
+
+function populateMonthSelect() {
+  const sel = document.getElementById('cfgMonth');
+  sel.innerHTML = "";
+  state.monthNames.forEach((name, i) => {
+    const opt = document.createElement('option');
+    opt.value = i + 1;
+    opt.textContent = name;
+    if (i + 1 === state.month) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function render() {
+  const todayCount = dayCount(state.year, state.month, state.day);
+  const { tenday, dayInTenday } = tendayOf(state.day);
+  const monthName = state.monthNames[state.month - 1] || `Month ${state.month}`;
+
+  document.getElementById('todayLine').textContent =
+    `Day ${dayInTenday} of the ${ordinal(tenday)} tenday of ${monthName}`;
+  document.getElementById('todaySub').textContent =
+    `(Day ${state.day} of ${monthName}, Year ${state.year})`;
+
+  const wrap = document.getElementById('moonCards');
+  wrap.innerHTML = "";
+
+  state.moons.forEach((moon, i) => {
+    const refCount = dayCount(moon.refYear, moon.refMonth, moon.refDay);
+    const age = todayCount - refCount; // days since a known full moon
+    const phase = phaseFor(age, moon.cycleLength);
+    const daysSincePhaseCycleStart = ((age % moon.cycleLength) + moon.cycleLength) % moon.cycleLength;
+    const daysToNextFull = (moon.cycleLength - daysSincePhaseCycleStart) % moon.cycleLength;
+
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const isFull = phase.name === "Full Moon";
+    card.innerHTML = `
+      <div class="moon-block">
+        <div class="moon-disc ${isFull ? 'full' : ''}">${phase.icon}</div>
+        <div class="moon-info">
+          <div class="moon-name">${moon.name}${state.moons.length > 1 ? `<button class="moon-remove" onclick="removeMoon(${i})" title="Remove">✕</button>` : ""}</div>
+          <div class="moon-phase">${phase.name}</div>
+          <div class="moon-count">${daysToNextFull === 0 ? "Full tonight" : `Full moon in ${daysToNextFull} day${daysToNextFull === 1 ? "" : "s"}`} &middot; ${moon.cycleLength}-day cycle</div>
+        </div>
+      </div>
+    `;
+
+    const upcoming = document.createElement('div');
+    upcoming.style.marginTop = "14px";
+    upcoming.innerHTML = `<h2 style="margin-bottom:8px;">Next full moons</h2>`;
+    const ul = document.createElement('ul');
+    ul.className = 'upcoming';
+    let nextCount = todayCount + daysToNextFull;
+    for (let n = 0; n < 4; n++) {
+      const occurCount = nextCount + n * moon.cycleLength;
+      const dt = dateFromCount(occurCount);
+      const t = tendayOf(dt.d);
+      const mName = state.monthNames[dt.m - 1] || `Month ${dt.m}`;
+      const li = document.createElement('li');
+      li.innerHTML = `<span>${mName}, Year ${dt.y}</span><span class="tag">Tenday ${t.tenday}, Day ${t.dayInTenday}</span>`;
+      ul.appendChild(li);
+    }
+    upcoming.appendChild(ul);
+    card.appendChild(upcoming);
+    wrap.appendChild(card);
+  });
+
+  renderMoonSettings();
+}
+
+function ordinal(n) {
+  return n === 1 ? "1st" : n === 2 ? "2nd" : n === 3 ? "3rd" : `${n}th`;
+}
+
+function advance(days) {
+  const c = dayCount(state.year, state.month, state.day) + days;
+  const dt = dateFromCount(c);
+  state.year = dt.y; state.month = dt.m; state.day = dt.d;
+  populateMonthSelect();
+  render();
+}
+
+function applySettings() {
+  state.year = parseInt(document.getElementById('cfgYear').value) || state.year;
+  state.month = parseInt(document.getElementById('cfgMonth').value) || state.month;
+  state.day = Math.min(30, Math.max(1, parseInt(document.getElementById('cfgDay').value) || state.day));
+  const names = document.getElementById('cfgMonthNames').value.split(",").map(s => s.trim()).filter(Boolean);
+  if (names.length === 12) state.monthNames = names;
+
+  state.moons.forEach((moon, i) => {
+    const nameEl = document.getElementById(`moonName${i}`);
+    const cycleEl = document.getElementById(`moonCycle${i}`);
+    const ryEl = document.getElementById(`moonRefY${i}`);
+    const rmEl = document.getElementById(`moonRefM${i}`);
+    const rdEl = document.getElementById(`moonRefD${i}`);
+    if (nameEl) moon.name = nameEl.value || moon.name;
+    if (cycleEl) moon.cycleLength = Math.max(2, parseInt(cycleEl.value) || moon.cycleLength);
+    if (ryEl) moon.refYear = parseInt(ryEl.value) || moon.refYear;
+    if (rmEl) moon.refMonth = parseInt(rmEl.value) || moon.refMonth;
+    if (rdEl) moon.refDay = parseInt(rdEl.value) || moon.refDay;
+  });
+
+  populateMonthSelect();
+  render();
+}
+
+function addMoon() {
+  state.moons.push({
+    name: `Moon ${state.moons.length + 1}`,
+    cycleLength: 30,
+    refYear: state.year, refMonth: state.month, refDay: state.day
+  });
+  render();
+  document.getElementById('settingsPanel').open = true;
+}
+
+function removeMoon(i) {
+  state.moons.splice(i, 1);
+  render();
+}
+
+function renderMoonSettings() {
+  const wrap = document.getElementById('moonSettingsWrap');
+  wrap.innerHTML = "";
+  state.moons.forEach((moon, i) => {
+    const div = document.createElement('div');
+    div.className = 'moon-config';
+    div.innerHTML = `
+      <div class="field-row">
+        <div class="field">
+          <label>Moon name</label>
+          <input type="text" id="moonName${i}" value="${moon.name}">
+        </div>
+        <div class="field">
+          <label>Cycle length (days)</label>
+          <input type="number" id="moonCycle${i}" value="${moon.cycleLength}" min="2">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Reference full moon — Year</label>
+          <input type="number" id="moonRefY${i}" value="${moon.refYear}">
+        </div>
+        <div class="field">
+          <label>Month #</label>
+          <input type="number" id="moonRefM${i}" value="${moon.refMonth}" min="1" max="12">
+        </div>
+        <div class="field">
+          <label>Day</label>
+          <input type="number" id="moonRefD${i}" value="${moon.refDay}" min="1" max="30">
+        </div>
+      </div>
+    `;
+    wrap.appendChild(div);
+  });
+}
+
+populateMonthSelect();
+render();
+rerollWeather();
+</script>
+</body>
+</html>
