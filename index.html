@@ -249,7 +249,7 @@
     <h2>Weather over the Vale</h2>
     <div class="moon-block" id="weatherDisplay"></div>
     <div class="btn-row">
-      <button class="primary" onclick="rerollWeather()">Reroll weather</button>
+      <button class="primary" onclick="rollWeather()">Reroll weather</button>
     </div>
   </div>
 
@@ -283,6 +283,7 @@
       </div>
       <div class="btn-row" style="margin-top:8px;">
         <button class="primary" onclick="applySettings()">Apply</button>
+        <button class="small" onclick="resetLedger()">Reset to defaults</button>
       </div>
       <div id="moonSettingsWrap"></div>
     </details>
@@ -352,25 +353,33 @@ function weightedPick(table) {
   return table[table.length - 1];
 }
 
-function rerollWeather() {
+function rollWeather() {
   const w = weightedPick(WEATHER_TABLE);
   const town = TEN_TOWNS[Math.floor(Math.random() * TEN_TOWNS.length)];
   const temp = Math.floor(Math.random() * (w.temp[1] - w.temp[0] + 1)) + w.temp[0];
-  const isBlizzard = w.name.includes("Blizzard");
+  state.weather = { name: w.name, icon: w.icon, temp, wind: w.wind, flavor: w.flavor, town };
+  renderWeather();
+  saveState();
+}
 
-  const disc = document.querySelector('#weatherDisplay').parentElement ? null : null;
+function renderWeather() {
+  if (!state.weather) { rollWeather(); return; }
+  const w = state.weather;
+  const isBlizzard = w.name.includes("Blizzard");
   document.getElementById('weatherDisplay').innerHTML = `
     <div class="moon-disc ${isBlizzard ? 'full' : ''}">${w.icon}</div>
     <div class="moon-info">
       <div class="moon-name">${w.name}</div>
-      <div class="moon-phase">${temp}°F &middot; ${w.wind} wind</div>
+      <div class="moon-phase">${w.temp}°F &middot; ${w.wind} wind</div>
       <div class="moon-count">${w.flavor}</div>
-      <div class="moon-count" style="margin-top:4px;">Reported near ${town}</div>
+      <div class="moon-count" style="margin-top:4px;">Reported near ${w.town}</div>
     </div>
   `;
 }
 
 // ---------- state ----------
+const STORAGE_KEY = 'moonwatchersLedgerState';
+
 let state = {
   year: 1492,
   month: 8,
@@ -378,8 +387,31 @@ let state = {
   monthNames: "Hammer, Alturiak, Ches, Tarsakh, Mirtul, Kythorn, Flamerule, Eleasis, Eleint, Marpenoth, Uktar, Nightal".split(",").map(s => s.trim()),
   moons: [
     { name: "Selûne", cycleLength: 30, refYear: 1492, refMonth: 8, refDay: 1 } // refDate = a date the moon was FULL
-  ]
+  ],
+  weather: null
 };
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    // storage unavailable (private browsing, blocked third-party iframe, etc.) — fail silently
+  }
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) state = Object.assign(state, JSON.parse(raw));
+  } catch (e) {
+    // storage unavailable or corrupted — fall back to defaults
+  }
+}
+
+function resetLedger() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+  location.reload();
+}
 
 function populateMonthSelect() {
   const sel = document.getElementById('cfgMonth');
@@ -461,6 +493,7 @@ function advance(days) {
   state.year = dt.y; state.month = dt.m; state.day = dt.d;
   populateMonthSelect();
   render();
+  saveState();
 }
 
 function applySettings() {
@@ -485,6 +518,7 @@ function applySettings() {
 
   populateMonthSelect();
   render();
+  saveState();
 }
 
 function addMoon() {
@@ -495,11 +529,13 @@ function addMoon() {
   });
   render();
   document.getElementById('settingsPanel').open = true;
+  saveState();
 }
 
 function removeMoon(i) {
   state.moons.splice(i, 1);
   render();
+  saveState();
 }
 
 function renderMoonSettings() {
@@ -538,9 +574,10 @@ function renderMoonSettings() {
   });
 }
 
+loadState();
 populateMonthSelect();
 render();
-rerollWeather();
+renderWeather();
 </script>
 </body>
 </html>
